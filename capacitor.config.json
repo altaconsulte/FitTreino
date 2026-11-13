@@ -1,0 +1,10 @@
+{
+  "appId": "com.altaconsulte.fittreino",
+  "appName": "FitTreino",
+  "webDir": "www",
+  "plugins": {
+    "SystemBars": {
+      "style": "DARK"
+    }
+  }
+}

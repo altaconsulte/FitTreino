@@ -1,0 +1,20 @@
+{
+  "name": "fittreino",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Registro simples de treinos para alunos e personal trainers. Sem internet, sem login.",
+  "scripts": {
+    "icones": "capacitor-assets generate --android --iconBackgroundColor '#0f766e' --iconBackgroundColorDark '#0f766e' --splashBackgroundColor '#0f766e' --splashBackgroundColorDark '#0e1513'",
+    "android": "cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.6.1",
+    "@capacitor/core": "8.6.1",
+    "@capacitor/filesystem": "8.1.5",
+    "@capacitor/share": "8.0.3"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "3.0.5",
+    "@capacitor/cli": "8.6.1"
+  }
+}

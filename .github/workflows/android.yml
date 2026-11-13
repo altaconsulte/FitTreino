@@ -1,0 +1,77 @@
+name: Gerar app Android
+
+# Roda a cada envio para o branch main e também manualmente
+# (aba Actions > "Gerar app Android" > "Run workflow").
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    env:
+      TEM_CHAVE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Criar projeto Android, ícones e copiar o app
+        run: |
+          npx cap add android
+          npm run icones
+          npx cap sync android
+
+      - name: Definir versão
+        run: |
+          VERSAO=$(node -p "require('./package.json').version")
+          sed -i "s/versionCode 1$/versionCode ${{ github.run_number }}/" android/app/build.gradle
+          sed -i "s/versionName \"1.0\"/versionName \"$VERSAO\"/" android/app/build.gradle
+          grep -n "versionCode\|versionName" android/app/build.gradle
+
+      - name: Gerar APK de teste (instalar direto no celular)
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FitTreino-apk-teste
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      # Versão para a Play Store: só roda depois que a chave de assinatura
+      # for cadastrada em Settings > Secrets and variables > Actions.
+      - name: Gerar AAB assinado (Play Store)
+        if: env.TEM_CHAVE == 'true'
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        working-directory: android
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/fittreino.jks"
+          ./gradlew bundleRelease assembleRelease --no-daemon \
+            -Pandroid.injected.signing.store.file="$RUNNER_TEMP/fittreino.jks" \
+            -Pandroid.injected.signing.store.password="$KEYSTORE_PASSWORD" \
+            -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
+            -Pandroid.injected.signing.key.password="$KEY_PASSWORD"
+
+      - uses: actions/upload-artifact@v4
+        if: env.TEM_CHAVE == 'true'
+        with:
+          name: FitTreino-play-store
+          path: |
+            android/app/build/outputs/bundle/release/app-release.aab
+            android/app/build/outputs/apk/release/app-release.apk
